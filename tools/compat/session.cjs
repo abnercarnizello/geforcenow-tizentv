@@ -53,7 +53,7 @@ process.once('SIGTERM', () => finishWaiting());
     try{
       const body=await adapter.resource(p.request.url,p.resourceType);
       const bytes=Buffer.from(body);
-      const headers='HTTP/1.1 200 OK\r\nContent-Type: '+(p.resourceType==='Document'?'text/html':'application/javascript')+'; charset=utf-8\r\nCache-Control: no-store\r\nAccess-Control-Allow-Origin: https://play.geforcenow.com\r\nAccess-Control-Allow-Credentials: true\r\nContent-Length: '+bytes.length+'\r\n\r\n';
+      const headers='HTTP/1.1 200 OK\r\nContent-Type: '+(p.resourceType==='Document'?'text/html':'application/javascript')+'; charset=utf-8\r\nCache-Control: no-store\r\nAccess-Control-Allow-Origin: '+u.origin+'\r\nAccess-Control-Allow-Credentials: true\r\nContent-Length: '+bytes.length+'\r\n\r\n';
       await call('Network.continueInterceptedRequest',{interceptionId:p.interceptionId,rawResponse:Buffer.concat([Buffer.from(headers),bytes]).toString('base64')});
       if(verbose)console.log('Adapted '+p.resourceType+' '+u.pathname);
     }catch(e){
@@ -91,7 +91,7 @@ process.once('SIGTERM', () => finishWaiting());
     if(!keepPage)await call('Network.setUserAgentOverride',{userAgent:'Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36',platform:'Linux x86_64'});
     await call('Network.setCacheDisabled',{cacheDisabled:true});
     await call('Network.setBypassServiceWorker',{bypass:true});
-    await call('Network.setRequestInterception',{patterns:[{urlPattern:'https://play.geforcenow.com/*',resourceType:'Document',interceptionStage:'Request'},{urlPattern:'https://play.geforcenow.com/*',resourceType:'Script',interceptionStage:'Request'}]});
+    await call('Network.setRequestInterception',{patterns:['https://play.geforcenow.com/*','https://gx-surveys.nvidia.com/*'].flatMap(urlPattern=>['Document','Script'].map(resourceType=>({urlPattern,resourceType,interceptionStage:'Request'})))});
     capturing=true;
     console.log('Compatibilidade ativa. Mantenha este PC ligado. Para encerrar, pressione Ctrl+C.');
     if(keepPage){

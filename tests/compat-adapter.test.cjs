@@ -172,3 +172,35 @@ test('document redirects inside the public scope become a fresh in-page navigati
   assert.doesNotMatch(page, /secret/);
   await assert.rejects(adapter.resource('https://play.geforcenow.com/games','Document'), /Unexpected document redirect/);
 });
+
+test('post-game survey frame is in scope with only its static documents and scripts', () => {
+  assert.equal(eligible('https://gx-surveys.nvidia.com/?surveyId=abc&token=secret', 'Document'), true);
+  assert.equal(eligible('https://gx-surveys.nvidia.com/index.html', 'Document'), true);
+  assert.equal(eligible('https://gx-surveys.nvidia.com/static/js/93.37c5056e.js', 'Script'), true);
+  for (const [url,type] of [
+    ['https://gx-surveys.nvidia.com/api/survey', 'Document'],
+    ['https://gx-surveys.nvidia.com/static/js/main.js?x=1', 'Script'],
+    ['https://gx-surveys.nvidia.com/other/app.js', 'Script'],
+    ['https://gx-surveys.nvidia.com/', 'XHR'],
+    ['https://evil.gx-surveys.nvidia.com/', 'Document'],
+    ['http://gx-surveys.nvidia.com/', 'Document']
+  ]) assert.equal(eligible(url, type), false, url);
+});
+
+test('survey documents get the light prelude without the game client parts', requiresCompiler, async t => {
+  const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gfn-adapter-test-'));
+  t.after(() => fs.rmSync(cacheDir, {recursive:true,force:true}));
+  const calls = [];
+  const fetchImpl = async (url, options) => {
+    calls.push(url);
+    if (url !== 'https://gx-surveys.nvidia.com/') throw new Error('Unexpected fetch ' + url);
+    return {ok:true,status:200,text:async () => '<!doctype html><html><head><script>globalThis.v = ({a:1})?.a ?? 2;</script><script defer src="/static/js/main.1.js"></script></head><body></body></html>'};
+  };
+  const adapter = createAdapter({root,cacheDir,fetchImpl});
+  const page = await adapter.resource('https://gx-surveys.nvidia.com/?surveyId=secret', 'Document');
+  assert.deepEqual(calls, ['https://gx-surveys.nvidia.com/'], 'no worker download and no query sent');
+  assert.match(page, /Chrome 69 compatibility bridge/);
+  assert.doesNotMatch(page, /__gfnRtcShim|CompatibleWorker|TizenTVApiInfo/);
+  assert.doesNotMatch(page, /\?\.a/);
+  assert.doesNotMatch(page, /secret/);
+});

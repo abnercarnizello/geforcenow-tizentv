@@ -10,14 +10,25 @@ const USER_AGENT = 'Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 
 const digest = value => crypto.createHash('sha256').update(value).digest('hex');
 const safeUrl = value => { try { const url = new URL(value); return url.origin + url.pathname; } catch { return '<invalid>'; } };
 
+// Post-session feedback form, shown in an iframe when a game ends. Its scripts
+// also need Chrome 69 adaptation, or the client waits forever for its answer.
+const SURVEY_ORIGIN = 'https://gx-surveys.nvidia.com';
+
 function eligible(value, type) {
   try {
     const url = new URL(value);
-    if (url.origin !== ORIGIN || url.username || url.password) return false;
+    if (url.username || url.password) return false;
+    if (url.origin === SURVEY_ORIGIN) {
+      if (type === 'Document') return ['/', '/index.html'].includes(url.pathname);
+      return type === 'Script' && !url.search && !url.hash && /^\/static\/js\/[\w.-]+\.js$/.test(url.pathname);
+    }
+    if (url.origin !== ORIGIN) return false;
     if (type === 'Document') return ['/', '/mall/', '/mall/index.html', '/games'].includes(url.pathname);
     return type === 'Script' && !url.search && !url.hash && /^\/mall\/.+\.js$/.test(url.pathname);
   } catch { return false; }
 }
+
+const isSurvey = value => { try { return new URL(value).origin === SURVEY_ORIGIN; } catch { return false; } };
 
 function createAdapter({root = path.resolve(__dirname, '../..'), fetchImpl = globalThis.fetch, cacheDir = path.join(root, '.tools/compat-cache')} = {}) {
   const esbuild = require(path.join(root, '.tools/compat-deps/node_modules/esbuild'));
@@ -38,6 +49,9 @@ function createAdapter({root = path.resolve(__dirname, '../..'), fetchImpl = glo
   // Invalidate older worker/prelude caches whenever this adapter or its local
   // polyfills change. Vendor sources stay under the ignored .tools directory.
   const fingerprint = digest(fs.readFileSync(__filename)) + ':' + digest(basePrelude) + ':' + esbuild.version;
+  // The survey frame only needs the language built-ins and ResizeObserver.
+  const surveyPrelude = core + '\n' + resizePrelude;
+  const documentPrelude = url => isSurvey(url) ? Promise.resolve(surveyPrelude) : preparePrelude();
   const transformed = [];
   const compiled = new Map();
   let preludePromise;
@@ -104,7 +118,7 @@ function createAdapter({root = path.resolve(__dirname, '../..'), fetchImpl = glo
   async function transformHtml(source, url) {
     if (!eligible(url, 'Document')) throw new Error('Resource outside public compatibility scope');
     if (!/<head\b[^>]*>/i.test(source)) throw new Error('Expected public document head absent');
-    const prelude = await preparePrelude();
+    const prelude = await documentPrelude(url);
     const matches = [...source.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)];
     let result = '', offset = 0;
     for (const match of matches) {
@@ -132,7 +146,7 @@ function createAdapter({root = path.resolve(__dirname, '../..'), fetchImpl = glo
     // browser URL, but never send or retain those parameters in the PC fetch.
     if (type === 'Document') { url.search = ''; url.hash = ''; }
     const canonical = url.href;
-    const prelude = type === 'Document' ? await preparePrelude() : '';
+    const prelude = type === 'Document' ? await documentPrelude(canonical) : '';
     const key = digest(canonical + '\n' + type + '\n' + fingerprint + '\n' + digest(prelude));
     if (compiled.has(key)) return compiled.get(key);
     const task = (async () => {
