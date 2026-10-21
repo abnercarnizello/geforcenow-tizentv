@@ -1,0 +1,11 @@
+.tools/
+dist/
+.build/
+node_modules/
+*.wgt
+*.p12
+*.pfx
+author-signature.xml
+signature1.xml
+# Local evidence: machine paths, captures and decompiled third-party code.
+analysis/*.json

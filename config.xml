@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<widget xmlns:tizen="http://tizen.org/ns/widgets" xmlns="http://www.w3.org/ns/widgets" id="http://yourdomain/GeforceNowLauncher" version="1.0.0" viewmodes="fullscreen">
-    <access origin="geforcenow.com" subdomains="true"></access>
-    <tizen:allow-navigation>geforcenow.com *.geforcenow.com</tizen:allow-navigation>
-    <tizen:application id="eTg1POgH1N.BasicProject" package="eTg1POgH1N" required_version="2.3"/>
+<widget xmlns:tizen="http://tizen.org/ns/widgets" xmlns="http://www.w3.org/ns/widgets" id="http://yourdomain/GeforceNowLauncher" version="1.1.1" viewmodes="fullscreen">
+    <!-- Login and regional providers redirect outside geforcenow.com. -->
+    <access origin="*" subdomains="true"/>
+    <tizen:allow-navigation>*</tizen:allow-navigation>
+    <tizen:application id="eTg1POgH1N.BasicProject" package="eTg1POgH1N" required_version="5.5"/>
     <content src="index.html"/>
-    <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
+    <tizen:privilege name="http://tizen.org/privilege/internet"/>
     <icon src="icon.png"/>
     <name>GeforceNowLauncher</name>
     <tizen:profile name="tv-samsung"/>
