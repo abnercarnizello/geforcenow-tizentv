@@ -14,7 +14,8 @@ Um launcher não atualiza o Chromium nem adiciona codecs ou recursos de hardware
 **O teste com apoio do PC já transmite um jogo.** Com a correção de WebRTC
 (`tools/compat/rtc-shim.js`), Among Us passou da fila e conectou: vídeo 1920×1080
 decodificando a cerca de 58 quadros/s e áudio chegando, sem o erro `0xC0F2220F`.
-Ainda falta confirmar na TV física a imagem e o som, e testar os comandos.
+Imagem e som confirmados na TV. Ao encerrar o jogo, o app volta ao catálogo.
+O controle do PS5 não é reconhecido pela TV (Tizen 5.5).
 
 ## Teste com apoio do PC
 

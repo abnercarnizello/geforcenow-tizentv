@@ -271,3 +271,20 @@ com `redirect:'error'`.
 
 Os JSON de evidência (`analysis/*.json`) ficam apenas na cópia local: contêm caminhos
 da máquina e, no caso do APK, trechos descompilados de código da NVIDIA.
+
+## Volta ao catálogo após o jogo: pesquisa pós-sessão
+
+Ao encerrar Among Us, o app não voltava à tela do GeForce NOW. A sessão registrou
+`ReferenceError: globalThis is not defined` em `gx-surveys.nvidia.com/static/js/93.*.js`.
+O cliente abre essa pesquisa num iframe (`#survey-frame`) e espera um `postMessage`
+(`surveyengine.cancel`, `nosurvey`, `thanks` ou `error`); como o script quebrava
+no Chromium 69, nenhuma mensagem chegava e a tela ficava presa.
+
+O adaptador passou a cobrir só o documento (`/`, `/index.html`) e os scripts
+`/static/js/*.js` desse domínio, com um prelúdio leve (core-js e ResizeObserver,
+sem WebRTC, worker ou remoção de marcadores Tizen). A query do iframe não é enviada
+ao PC. A resposta interceptada usa o próprio domínio em `Access-Control-Allow-Origin`.
+
+Teste direto na TV: o iframe carregou, enviou mensagens à página e não houve exceções.
+Teste real: o usuário encerrou Among Us e o app voltou ao catálogo; a sessão adaptou o
+documento e os dois scripts da pesquisa, sem exceções registradas.
